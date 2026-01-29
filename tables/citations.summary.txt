@@ -1,0 +1,19 @@
+
+Number of nodes: 1770474
+Number of edges: 1765959.0
+Average degree: 2.0
+Average degree of friends: 27.3
+Median degree: 1.0
+Variance in degree: 50.6
+Max degree: 2056
+Min degree: 1
+Number of nodes with min degree: 1359610
+    
+Average degree of those with degree >=2: 5.3
+Average degree of those with degree >=3: 8.2
+Average degree of those with degree >=4: 10.8
+Average degree of those with degree >=5: 13.3
+Average degree of those with degree >=6: 15.8
+Average degree of those with degree >=7: 18.2
+Average degree of those with degree >=8: 20.6
+Average degree of those with degree >=9: 22.9

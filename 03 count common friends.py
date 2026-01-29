@@ -1,65 +1,118 @@
 from common import *
 
-def sample_until_common(net, N=2):
-  common = defaultdict(int)
-  chosen = set()
-  buffer = None
-  while not len(common) or max(common.values()) < N:
-    if buffer is None or not len(buffer):
-      candidates = [n for n in net.nodes if n not in chosen]
-      buffer = list(np.random.choice(candidates, 200, replace=False))
+def sample_until_common_friend(net, k=2):
+    """
+    Sample random individuals until we find a "common friend to k" --
+    someone who appears in the friend lists of k different sampled individuals.
+    
+    This implements the sampling procedure from "The Power of Common Friends":
+    we draw random people and track how many sampled individuals list each
+    person as a friend. We stop when some person has been listed k times.
+    
+    Args:
+        net: Network object with .nodes list and .nbds dict (node -> set of neighbors)
+        k: Number of times someone must appear in friend lists (default 2)
+    
+    Returns:
+        (sample_size, common_friend_id): Number of people sampled, and the ID of 
+        a randomly chosen common friend to k (if multiple exist with same count)
+    """
+    # Count how many sampled individuals list each person as a friend
+    friend_counts = defaultdict(int)
+    
+    # Track which nodes we've already sampled
+    sampled = set()
+    
+    # Buffer of candidates for efficient random sampling
+    buffer = None
+    
+    while not friend_counts or max(friend_counts.values()) < k:
+        # Refill buffer if empty
+        if buffer is None or len(buffer) == 0:
+            candidates = [n for n in net.nodes if n not in sampled]
+            buffer = list(np.random.choice(candidates, min(200, len(candidates)), replace=False))
+        
+        # Sample a random individual
+        sampled_node = buffer.pop()
+        sampled.add(sampled_node)
+        
+        # Update friend counts for all neighbors of the sampled individual
+        for neighbor in net.nbds[sampled_node]:
+            friend_counts[neighbor] += 1
+    
+    # Find all individuals who achieved the max count (common friends to k)
+    max_count = max(friend_counts.values())
+    candidates = [node for node, count in friend_counts.items() if count == max_count]
+    common_friend = np.random.choice(candidates)
+    
+    return len(sampled), common_friend
 
-    new_node = buffer.pop()
 
-    chosen.add(new_node)
+def run_simulation_study(net, ks=(2, 3, 4, 5, 6), n_trials=300):
+    """
+    Run the common friends simulation study for a network.
+    
+    For each value of k, we repeatedly sample until finding a common friend to k,
+    and record both the sample size required and the degree of the common friend found.
+    
+    Args:
+        net: Network object
+        ks: Tuple of k values to test (number of common friends required)
+        n_trials: Number of simulation trials per k value
+    """
+    print(f'Starting simulation for {net.name}')
+    
+    # Precompute degree statistics for the network
+    degrees = net.ds
+    max_degree_in_network = degrees.max()
+    top_5_degrees = set(sorted(degrees)[-5:])
+    
+    results = defaultdict(list)
+    
+    for k in ks:
+        print(f'  k={k}: sampling until common friend to {k}...')
+        
+        found_degrees = []      # Degree of the common friend found in each trial
+        sample_sizes = []       # Number of individuals sampled in each trial
+        
+        for _ in range(n_trials):
+            sample_size, common_friend = sample_until_common_friend(net, k=k)
+            degree = net.ddict[common_friend]
+            
+            found_degrees.append(degree)
+            sample_sizes.append(sample_size)
+        
+        found_degrees = np.array(found_degrees)
+        sample_sizes = np.array(sample_sizes)
+        
+        # Record statistics
+        results["avg_deg"].append(np.mean(found_degrees))
+        results["med_deg"].append(np.median(found_degrees))
+        results["min_deg"].append(np.min(found_degrees))
+        results["max_deg"].append(np.max(found_degrees))
+        results["5pct_deg"].append(np.percentile(found_degrees, 5))
+        results["95pct_deg"].append(np.percentile(found_degrees, 95))
+        
+        results["avg_samp"].append(np.mean(sample_sizes))
+        results["5pct_samp"].append(np.percentile(sample_sizes, 5))
+        results["95pct_samp"].append(np.percentile(sample_sizes, 95))
+        
+        results["got_max"].append(np.mean(found_degrees == max_degree_in_network))
+        results["got_top5"].append(np.mean([d in top_5_degrees for d in found_degrees]))
+    
+    # Write results to file
+    with open(f'tables/{net.name}.sim.txt', 'w') as f:
+        for i, k in enumerate(ks):
+            f.write(f'------ k={k} ------\n')
+            for stat_name, stat_values in results.items():
+                f.write(f'{stat_name}: {stat_values[i]}\n')
+            
+            # What percentile is the average degree found?
+            avg_deg = results["avg_deg"][i]
+            percentile = 1 - (degrees >= avg_deg).sum() / len(degrees)
+            f.write(f'avg_deg percentile: {percentile:0.3%}\n')
 
-    for nb in net.nbds[new_node]:
-      common[nb] += 1
 
-  max_degree = max(common.values())
-  candidates = [n for n in common if common[n] == max_degree]
-  result = np.random.choice(candidates)
-  return len(chosen), result
-
-def sim_study(net):
-  print('Starting simulation for', net.name)
-  Ns = [2,3,4,5,6]
-  
-  d = [len(n) for n in net.nbds.values()]
-  d = np.array(d)
-  max_degree = d.max()
-  top_degrees = d.sort()[-5:]
-
-  stats_wait = defaultdict(list)
-  for N in Ns:
-    print('working on', N)
-    samples = []
-    samples_ = []
-    for i in range(300):
-      d_, ni = sample_until_common(net, N=N)
-      d = len(net.nbds[ni])
-
-      samples.append(d)
-      samples_.append(d_)
-
-    stats_wait["avg_deg"].append(np.mean(samples))
-    stats_wait["max_deg"].append(np.max(samples))
-    stats_wait["min_deg"].append(np.min(samples))
-    stats_wait["med_deg"].append(np.median(samples))
-    stats_wait["avg_samp"].append(np.mean(samples_))
-    stats_wait["5pct_samp"].append(np.percentile(samples_, 5))
-    stats_wait["95pct_samp"].append(np.percentile(samples_, 95))
-    stats_wait["5pct_deg"].append(np.percentile(samples, 5))
-    stats_wait["95pct_deg"].append(np.percentile(samples, 95))
-    stats_wait["got_max"].append(np.mean([s==max_degree for s in samples]))
-    stats_wait["got_top5"].append(np.mean([s in top_degrees for s in samples]))
-
-  with open(f'tables/{net.name}.sim.txt', 'w') as outf:
-    for ni, N in enumerate(Ns):
-      outf.write(f'------ {N} ------\n')
-      for stat in stats_wait:
-          outf.write(f'{stat}: {stats_wait[stat][ni]}\n')
-      outf.write(f'avg_deg percentile: {1-(ds >= stats_wait["avg_deg"][ni]).sum() / len(ds):0.3%}\n')
-
-sim_study(NOLA)
-sim_study(citations)
+if __name__ == '__main__':
+    run_simulation_study(NOLA)
+    run_simulation_study(citations)

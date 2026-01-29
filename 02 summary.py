@@ -5,6 +5,7 @@ def summ(net):
   nbds = net.nbds
   nodes = net.nodes
   es = net.es
+  ds = net.ds
 
   # CUMULATIVE PLOT OF DEGREE!
   sdeg = np.array(sorted([len(nbds[n]) for n in nodes]))
@@ -23,9 +24,6 @@ def summ(net):
 
   # BASIC STATISTICS
   nn = len(nbds)
-  
-  ds = [len(nbds[i]) for i in nbds]
-  ds = np.array(ds)
   
   avg_deg = ds.mean()
   med_deg = np.median(ds)

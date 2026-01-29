@@ -24,11 +24,13 @@ class Network:
             ai,bi,*_ = l.split()
             ai,bi = int(ai),int(bi)
             
-            if symmetrize: self.nbds[ai].add(bi) # for the new orleans network
-            self.nbds[bi].add(ai)
+            if symmetrize: self.nbds[bi].add(ai) # for the new orleans network
+            self.nbds[ai].add(bi)
             self.es.append((ai,bi))
 
     self.nodes = list(self.nbds.keys())
+    self.ddict = Counter([y for n in self.nbds.values() for y in n])
+    self.ds = np.array(list(self.ddict.values()))
     self.name = Path(fn).stem
 
 # DEFINE THE NETWORKS

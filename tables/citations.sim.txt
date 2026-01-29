@@ -1,0 +1,65 @@
+------ k=2 ------
+avg_deg: 468.6933333333333
+med_deg: 294.0
+min_deg: 4
+max_deg: 2056
+5pct_deg: 12.0
+95pct_deg: 1411.9000000000078
+avg_samp: 11.353333333333333
+5pct_samp: 4.0
+95pct_samp: 21.0
+got_max: 0.05
+got_top5: 0.12666666666666668
+avg_deg percentile: 99.997%
+------ k=3 ------
+avg_deg: 848.36
+med_deg: 758.5
+min_deg: 24
+max_deg: 2056
+5pct_deg: 139.65
+95pct_deg: 2056.0
+avg_samp: 37.873333333333335
+5pct_samp: 12.0
+95pct_samp: 61.10000000000002
+got_max: 0.09
+got_top5: 0.29333333333333333
+avg_deg percentile: 99.999%
+------ k=4 ------
+avg_deg: 1106.27
+med_deg: 935.0
+min_deg: 95
+max_deg: 2056
+5pct_deg: 315.9
+95pct_deg: 2056.0
+avg_samp: 70.62666666666667
+5pct_samp: 33.95
+95pct_samp: 109.0
+got_max: 0.22333333333333333
+got_top5: 0.43
+avg_deg percentile: 100.000%
+------ k=5 ------
+avg_deg: 1271.59
+med_deg: 1197.0
+min_deg: 145
+max_deg: 2056
+5pct_deg: 408.65000000000003
+95pct_deg: 2056.0
+avg_samp: 104.25333333333333
+5pct_samp: 54.95
+95pct_samp: 153.30000000000007
+got_max: 0.31333333333333335
+got_top5: 0.5633333333333334
+avg_deg percentile: 100.000%
+------ k=6 ------
+avg_deg: 1381.98
+med_deg: 1334.0
+min_deg: 314
+max_deg: 2056
+5pct_deg: 533.0
+95pct_deg: 2056.0
+avg_samp: 138.84333333333333
+5pct_samp: 77.95
+95pct_samp: 207.0
+got_max: 0.36333333333333334
+got_top5: 0.65
+avg_deg percentile: 100.000%

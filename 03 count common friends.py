@@ -48,7 +48,7 @@ def sample_until_common_friend(net, k=2):
     return len(sampled), common_friend
 
 
-def run_simulation_study(net, ks=(2, 3, 4, 5, 6), n_trials=300):
+def run_simulation_study(net, ks=(1, 2, 3, 4, 5, 6), n_trials=300):
     """
     Run the common friends simulation study for a network.
     

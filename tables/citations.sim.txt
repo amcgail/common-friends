@@ -1,3 +1,16 @@
+------ k=1 ------
+avg_deg: 26.273333333333333
+med_deg: 2.0
+min_deg: 1
+max_deg: 1073
+5pct_deg: 1.0
+95pct_deg: 151.20000000000005
+avg_samp: 1.0
+5pct_samp: 1.0
+95pct_samp: 1.0
+got_max: 0.0
+got_top5: 0.0033333333333333335
+avg_deg percentile: 99.514%
 ------ k=2 ------
 avg_deg: 468.6933333333333
 med_deg: 294.0

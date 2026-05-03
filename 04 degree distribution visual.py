@@ -25,122 +25,6 @@ Mathematical framework (see Appendix B of the paper):
 from common import *
 
 # =============================================================================
-# FALLING FACTORIAL COMPUTATION
-# =============================================================================
-
-_falling_factorial_cache = {}
-
-def falling_factorial(d, k):
-    """
-    Compute the falling factorial F_{d,k} = d × (d-1) × (d-2) × ... × (d-k+1).
-    
-    This counts the number of ordered k-tuples of a node's friends, i.e.,
-    the number of ways a node with degree d can appear as a common friend
-    to k specific people.
-    
-    Examples:
-        falling_factorial(5, 2) = 5 × 4 = 20
-        falling_factorial(5, 3) = 5 × 4 × 3 = 60
-        falling_factorial(3, 3) = 3 × 2 × 1 = 6
-        falling_factorial(2, 3) = 0  (can't be common friend to 3 with only 2 friends)
-    
-    Args:
-        d: Degree of the node
-        k: Number of common friends required
-    
-    Returns:
-        The falling factorial F_{d,k}, or 0 if d < k
-    """
-    if (d, k) in _falling_factorial_cache:
-        return _falling_factorial_cache[d, k]
-    
-    result = 1
-    for i in range(k):
-        result *= (d - i)
-    
-    _falling_factorial_cache[d, k] = result
-    return result
-
-
-def falling_factorial_array(max_degree, k):
-    """
-    Efficiently compute falling factorials for degrees k, k+1, ..., max_degree.
-    
-    Uses a recurrence relation for efficiency:
-        F_{d+1,k} = F_{d,k} × (d+1) / (d+1-k)
-    
-    This avoids recomputing the full product for each degree.
-    
-    Args:
-        max_degree: Maximum degree to compute
-        k: The k in F_{d,k}
-    
-    Returns:
-        NumPy array where array[d-k] = F_{d,k} for d = k, k+1, ..., max_degree
-    """
-    # Start with F_{k,k} = k!
-    F_k_k = falling_factorial(k, k)
-    weights = [F_k_k]
-    
-    # Build up using recurrence: F_{d+1,k} = F_{d,k} × (d+1) / (d+1-k)
-    for d in range(k + 1, max_degree + 1):
-        next_weight = weights[-1] * d / (d - k)
-        weights.append(next_weight)
-    
-    return np.array(weights)
-
-
-# =============================================================================
-# M_k AND V_k COMPUTATION
-# =============================================================================
-
-def compute_Mk_and_Vk(degrees, max_k=25):
-    """
-    Compute mean degree (M_k) and variance (V_k) for common friends to k people.
-    
-    For each k from 0 to max_k, this computes:
-    - M_k: The weighted mean degree, where each node is weighted by F_{d,k}
-    - V_k: The weighted variance of degree
-    
-    These implement Equations 7-8 from the paper's Appendix B:
-        M_k = Σ d_i × F_{d_i,k} / Σ F_{d_i,k}
-        V_k = Σ (d_i - M_k)² × F_{d_i,k} / Σ F_{d_i,k}
-    
-    Args:
-        degrees: NumPy array of node degrees
-        max_k: Maximum k to compute (default 25)
-    
-    Returns:
-        (M_dict, V_dict): Dictionaries mapping k -> M_k and k -> V_k
-    """
-    M = {0: degrees.mean()}
-    V = {0: degrees.var()}
-    
-    for k in range(1, max_k):
-        # Compute falling factorial weights for all possible degrees
-        weights_by_degree = falling_factorial_array(max(degrees), k)
-        
-        # Filter to nodes with degree >= k (others have F_{d,k} = 0)
-        eligible_degrees = degrees[degrees >= k]
-        
-        if len(eligible_degrees) == 0:
-            M[k] = np.nan
-            V[k] = np.nan
-            continue
-        
-        # Get weight for each eligible node: weights_by_degree[d - k] = F_{d,k}
-        node_weights = weights_by_degree[eligible_degrees - k]
-        
-        # Weighted mean: M_k = Σ d × w / Σ w
-        M[k] = (node_weights * eligible_degrees).sum() / node_weights.sum()
-        
-        # Weighted variance: V_k = Σ (d - M_k)² × w / Σ w
-        V[k] = (node_weights * (eligible_degrees - M[k])**2).sum() / node_weights.sum()
-    
-    return M, V
-
-
-# =============================================================================
 # VISUALIZATION
 # =============================================================================
 
@@ -172,13 +56,8 @@ def plot_degree_distribution_with_Mk(
         (M_dict, V_dict): The computed M_k and V_k values
     """
     M, V = compute_Mk_and_Vk(degrees)
-    
-    # Print M_k values
-    print("Mean degree of common friends to k (M_k):")
-    for k, m_k in M.items():
-        if not np.isnan(m_k):
-            print(f"  k={k}: M_k = {m_k:.2f}")
-    
+    print_mk(M)
+
     # Create figure
     plt.figure(figsize=(7, 5))
     
@@ -290,6 +169,9 @@ if __name__ == "__main__":
             "neworleans": "NEW ORLEANS FACEBOOK NETWORK",
             "citations": "CITATION NETWORK",
             "indian_microfinance": "INDIAN MICROFINANCE VILLAGE NETWORK",
+            "power": "WESTERN US POWER GRID",
+            "highschool": "MARSEILLE HIGH SCHOOL 2013 PROXIMITY NETWORK",
+            "celegans_chemical": "C. ELEGANS CHEMICAL CONNECTOME",
         }.get(net.name, net.name.upper())
 
         print("\n" + "=" * 60)

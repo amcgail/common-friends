@@ -78,6 +78,39 @@ def summ(net):
         f"Nodes with min degree: {nmin_deg}\n\n"
       )
 
+    M, _ = compute_Mk_and_Vk(ds)
+    outf.write(
+      "Mean degree of common friends to k (M_k); M_0 = population mean degree.\n"
+    )
+    prec = 2
+    w = max(8, prec + 5)
+    ks = [k for k in sorted(M.keys()) if not np.isnan(M[k])]
+    m0 = M.get(0, np.nan)
+    if not ks:
+      outf.write("(no finite M_k)\n\n")
+    else:
+      outf.write(
+        f"{'k':>3}  {'M_k':>{w}}  {'M_k/M_{k-1}':>{w}}  {'M_k/M_0':>{w}}\n"
+        f"{'---':>3}  {'---':>{w}}  {'---':>{w}}  {'---':>{w}}\n"
+      )
+      for k in ks:
+        mk = M[k]
+        mk_s = f"{mk:.{prec}f}"
+        if k == 0:
+          r_prev = "—"
+        else:
+          m_prev = M.get(k - 1, np.nan)
+          if np.isnan(m_prev) or m_prev == 0:
+            r_prev = "—"
+          else:
+            r_prev = f"{mk / m_prev:.{prec}f}"
+        if np.isnan(m0) or m0 == 0:
+          r0 = "—"
+        else:
+          r0 = f"{mk / m0:.{prec}f}"
+        outf.write(f"{k:3d}  {mk_s:>{w}}  {r_prev:>{w}}  {r0:>{w}}\n")
+      outf.write("\n")
+
     label = "In-degree" if directed else "degree"
     for i in range(2, 10):
       sub = ds[ds >= i]

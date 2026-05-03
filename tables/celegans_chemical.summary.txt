@@ -16,6 +16,35 @@ In-degree min: 2
 Cited works at min in-degree: 1
 Weighted paradox analogue (in-degree): 20.3
 
+Mean degree of common friends to k (M_k); M_0 = population mean degree.
+  k       M_k  M_k/M_{k-1}   M_k/M_0
+---       ---       ---       ---
+  0     16.26         —      1.00
+  1     20.34      1.25      1.25
+  2     24.72      1.22      1.52
+  3     29.14      1.18      1.79
+  4     33.26      1.14      2.04
+  5     36.76      1.11      2.26
+  6     39.54      1.08      2.43
+  7     41.63      1.05      2.56
+  8     43.16      1.04      2.65
+  9     44.28      1.03      2.72
+ 10     45.10      1.02      2.77
+ 11     45.72      1.01      2.81
+ 12     46.20      1.01      2.84
+ 13     46.58      1.01      2.86
+ 14     46.90      1.01      2.88
+ 15     47.16      1.01      2.90
+ 16     47.38      1.00      2.91
+ 17     47.57      1.00      2.92
+ 18     47.74      1.00      2.94
+ 19     47.89      1.00      2.94
+ 20     48.02      1.00      2.95
+ 21     48.14      1.00      2.96
+ 22     48.25      1.00      2.97
+ 23     48.35      1.00      2.97
+ 24     48.44      1.00      2.98
+
 Average In-degree of those with In-degree >= 2: 16.3
 Average In-degree of those with In-degree >= 3: 16.3
 Average In-degree of those with In-degree >= 4: 16.4

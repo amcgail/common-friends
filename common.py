@@ -59,3 +59,63 @@ NETWORKS = [
   highschool,
   celegans_chemical
 ]
+
+# --- M_k / V_k from degree multiset (Appendix B, Equations 7–8) ---
+
+_falling_factorial_cache = {}
+
+
+def falling_factorial(d, k):
+  """F_{d,k} = d(d-1)...(d-k+1); zero if d < k (handled by product)."""
+  if (d, k) in _falling_factorial_cache:
+    return _falling_factorial_cache[d, k]
+  result = 1
+  for i in range(k):
+    result *= (d - i)
+  _falling_factorial_cache[d, k] = result
+  return result
+
+
+def falling_factorial_array(max_degree, k):
+  """F_{d,k} for d = k..max_degree; index d - k into the returned array."""
+  F_k_k = falling_factorial(k, k)
+  weights = [F_k_k]
+  for d in range(k + 1, max_degree + 1):
+    weights.append(weights[-1] * d / (d - k))
+  return np.array(weights)
+
+
+def compute_Mk_and_Vk(degrees, max_k=25):
+  """Weighted mean/variance of degree for common-friends-to-k weights F_{d,k}."""
+  if len(degrees) == 0:
+    return {0: np.nan}, {0: np.nan}
+  M = {0: degrees.mean()}
+  V = {0: degrees.var()}
+  max_d = int(max(degrees))
+  for k in range(1, max_k):
+    weights_by_degree = falling_factorial_array(max_d, k)
+    eligible_degrees = degrees[degrees >= k]
+    if len(eligible_degrees) == 0:
+      M[k] = np.nan
+      V[k] = np.nan
+      continue
+    node_weights = weights_by_degree[eligible_degrees - k]
+    M[k] = (node_weights * eligible_degrees).sum() / node_weights.sum()
+    V[k] = (node_weights * (eligible_degrees - M[k]) ** 2).sum() / node_weights.sum()
+  return M, V
+
+
+def format_mk_lines(M, indent="", precision=2):
+  lines = []
+  for k in sorted(M.keys()):
+    m_k = M[k]
+    if np.isnan(m_k):
+      continue
+    lines.append(f"{indent}k={k}: M_k = {m_k:.{precision}f}")
+  return lines
+
+
+def print_mk(M, title="Mean degree of common friends to k (M_k):"):
+  print(title)
+  for line in format_mk_lines(M, indent="  ", precision=2):
+    print(line)

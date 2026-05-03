@@ -150,7 +150,8 @@ def plot_degree_distribution_with_Mk(
     degree_cutoff=0,
     show_Mk_up_to=5,
     bin_width=1,
-    m0_label_lift=0
+    m0_label_lift=0,
+    tail_tick_threshold=None,
 ):
     """
     Plot degree distribution histogram with M_k values annotated.
@@ -181,11 +182,13 @@ def plot_degree_distribution_with_Mk(
     # Create figure
     plt.figure(figsize=(7, 5))
     
-    # Plot histogram
+    # Plot histogram. Note: range() is exclusive of stop, so we add bin_width
+    # to include the maximum-degree node (otherwise small networks lose the tail).
     degrees_to_plot = degrees[degrees >= degree_cutoff]
+    max_degree = int(max(degrees))
     plt.hist(
         degrees_to_plot,
-        bins=range(degree_cutoff, max(degrees), bin_width),
+        bins=range(degree_cutoff, max_degree + bin_width + 1, bin_width),
         color='gray',
         align='mid'
     )
@@ -217,8 +220,24 @@ def plot_degree_distribution_with_Mk(
         height_M0_label = y_range * (0.4 + m0_label_lift)
     
     if show_Mk_up_to:
-        # Draw small tick marks for high-degree nodes (degree > 200)
-        high_degree_nodes = degrees[(degrees > 200) & (degrees < x_max)]
+        # Pick which k values get drawn so we can size the tail-tick threshold to them.
+        if isinstance(show_Mk_up_to, (list, set, range)):
+            shown_ks = [k for k in M if k in show_Mk_up_to]
+        else:
+            shown_ks = [k for k in M if k <= show_Mk_up_to]
+        max_Mk_shown = max(
+            (M[k] for k in shown_ks if not np.isnan(M[k])), default=0
+        )
+
+        # Draw small tick marks for nodes in the upper tail. Default threshold is
+        # just past the largest M_k we annotate, so individual tail nodes show up
+        # even on small networks (e.g. Indian microfinance, max degree = 55).
+        threshold = (
+            tail_tick_threshold
+            if tail_tick_threshold is not None
+            else max_Mk_shown
+        )
+        high_degree_nodes = degrees[(degrees > threshold) & (degrees <= x_max)]
         plt.vlines(high_degree_nodes, 0, height_tick_marks, color='black', alpha=0.2)
         
         # Draw labeled vertical lines for each M_k
@@ -266,31 +285,34 @@ def plot_degree_distribution_with_Mk(
 # =============================================================================
 
 if __name__ == "__main__":
-    # Facebook network (New Orleans regional network)
-    print("\n" + "="*60)
-    print("NEW ORLEANS FACEBOOK NETWORK")
-    print("="*60)
-    
-    plot_degree_distribution_with_Mk(
-        NOLA.ds,
-        log_scale=True,
-        bin_width=1
-    )
-    plt.savefig(f'figures/{NOLA.name}.degree-withM.png', dpi=150, bbox_inches='tight')
-    print(f"Saved: figures/{NOLA.name}.degree-withM.png")
-    
-    # Citation network
-    print("\n" + "="*60)
-    print("CITATION NETWORK")
-    print("="*60)
-    
-    plot_degree_distribution_with_Mk(
-        citations.ds,
-        log_scale=True,
-        show_Mk_up_to=range(0, 6),
-        bin_width=1,
-        m0_label_lift=0.1
-    )
-    plt.xlabel('In-degree (number of citations)')
-    plt.savefig(f'figures/{citations.name}.degree-withM.png', dpi=150, bbox_inches='tight')
-    print(f"Saved: figures/{citations.name}.degree-withM.png")
+    for net in NETWORKS:
+        title = {
+            "neworleans": "NEW ORLEANS FACEBOOK NETWORK",
+            "citations": "CITATION NETWORK",
+            "indian_microfinance": "INDIAN MICROFINANCE VILLAGE NETWORK",
+        }.get(net.name, net.name.upper())
+
+        print("\n" + "=" * 60)
+        print(title)
+        print("=" * 60)
+
+        # tail_tick_threshold=200 keeps the Facebook/citation panels visually
+        # identical to the original (they are heavy-tailed with thousands of
+        # tail nodes; ticking only above 200 avoids clutter). Smaller networks
+        # use the default (just past the largest annotated M_k).
+        plot_degree_distribution_with_Mk(
+            net.ds,
+            log_scale=True,
+            show_Mk_up_to=range(0, 6) if net.name == "citations" else 5,
+            bin_width=1,
+            m0_label_lift=0.1 if net.name == "citations" else 0,
+            tail_tick_threshold=200 if net.name in ("citations", "neworleans") else None,
+        )
+        if net.name == "citations":
+            plt.xlabel("In-degree (number of citations)")
+        else:
+            plt.xlabel("Degree")
+        plt.savefig(
+            f"figures/{net.name}.degree-withM.png", dpi=150, bbox_inches="tight"
+        )
+        print(f"Saved: figures/{net.name}.degree-withM.png")

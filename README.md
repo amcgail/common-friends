@@ -19,7 +19,7 @@ This repository reproduces the empirical illustrations and summary statistics re
 | `01 create citation network.py` | *Optional.* Builds `networks/citations.txt` from Web of Science export files (see below). |
 | `02 summary.py` | Network summary statistics and degree-distribution figures; computes \(M_0, M_1, \ldots, M_5\) from the degree distribution. |
 | `03 count common friends.py` | Simulations: sample until common friend to \(k\) for \(k = 2,\ldots,6\); 300 runs; writes tables with sample size and degree (or indegree) statistics. |
-| `networks/` | Edge-list inputs: `neworleans.txt`, `citations.txt`. |
+| `networks/` | Edge-list inputs: `neworleans.txt`, `citations.txt`, `indian_microfinance.txt`. |
 | `tables/` | Summary and simulation output (e.g. `*.summary.txt`, `*.sim.txt`). |
 | `figures/` | Degree-distribution and related plots. |
 
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ## How to run (replication)
 
-1. **Networks**: Ensure `networks/neworleans.txt` and `networks/citations.txt` exist (see *Data* below).  
+1. **Networks**: Ensure `networks/neworleans.txt`, `networks/citations.txt`, and (for the microfinance illustration) `networks/indian_microfinance.txt` exist (see *Data* below).  
    If you already have these files, skip step 2.
 
 2. **Citation network (optional)**  
@@ -63,3 +63,4 @@ pip install -r requirements.txt
 
 - **New Orleans Facebook**: From Viswanath et al. (2009). The edge list `networks/neworleans.txt` should contain one edge per line: `node_id_i node_id_j` (integer IDs). The code symmetrizes this network so that “friends” are undirected.
 - **Citations**: From Web of Science (sociology journals, 2010–2019). The edge list `networks/citations.txt` should be one citation per line: `citing_paper_id cited_work_id`. The code treats this as directed (outdegree = citations made, indegree = citations received); the paper’s “common friends” in this setting are *sources cited in common*, i.e. high-*indegree* nodes.
+- **Indian microfinance**: Banerjee et al., 2013, “The Diffusion of Microfinance”, Harvard Dataverse V9, [doi:10.7910/DVN/U3BIHX](https://doi.org/10.7910/DVN/U3BIHX). `networks/indian_microfinance.txt` is the undirected **all village relationships** layer for **village 60** (`adj_allVillageRelationships_vilno_60.csv` in the archive’s Adjacency Matrices folder—the largest village by node count, 1775 nodes); one edge per line as `i j` (matrix row/column indices). Symmetrized like New Orleans.

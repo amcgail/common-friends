@@ -1,0 +1,19 @@
+=== Nodes (undirected) ===
+Count: 1773
+Edges (undirected): 7699
+Average degree: 8.7
+Average degree of friends: 12.8
+Median degree: 7.0
+Variance in degree: 35.7
+Max degree: 55
+Min degree: 1
+Nodes with min degree: 22
+
+Average degree of those with degree >= 2: 8.8
+Average degree of those with degree >= 3: 9.0
+Average degree of those with degree >= 4: 9.8
+Average degree of those with degree >= 5: 10.9
+Average degree of those with degree >= 6: 11.9
+Average degree of those with degree >= 7: 12.8
+Average degree of those with degree >= 8: 13.8
+Average degree of those with degree >= 9: 14.6

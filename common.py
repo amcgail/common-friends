@@ -12,6 +12,8 @@ Path('tables').mkdir(exist_ok=True)
 
 class Network:
   def __init__(self, fn, symmetrize=False):
+    self.name = Path(fn).stem
+    self.loaded = False
     if not Path(fn).exists():
       print('Warning:', fn, 'doesn\'t exist')
       return
@@ -28,11 +30,22 @@ class Network:
             self.nbds[ai].add(bi)
             self.es.append((ai,bi))
 
+    self.directed = not symmetrize
     self.nodes = list(self.nbds.keys())
+    # Multiset of degrees: undirected = incident edges per node; directed = in-degree per cited work
     self.ddict = Counter([y for n in self.nbds.values() for y in n])
     self.ds = np.array(list(self.ddict.values()))
-    self.name = Path(fn).stem
+    self.loaded = True
 
-# DEFINE THE NETWORKS
-NOLA = Network('networks/neworleans.txt', symmetrize=True)
-citations = Network('networks/citations.txt', symmetrize=False)
+
+def _network_or_none(path, symmetrize=False):
+    net = Network(path, symmetrize=symmetrize)
+    return net if net.loaded else None
+
+
+# DEFINE THE NETWORKS (omit entries when the edge list is missing)
+NOLA = _network_or_none('networks/neworleans.txt', symmetrize=True)
+citations = _network_or_none('networks/citations.txt', symmetrize=False)
+indian_microfinance = _network_or_none('networks/indian_microfinance.txt', symmetrize=True)
+
+NETWORKS = [n for n in (NOLA, citations, indian_microfinance) if n is not None]

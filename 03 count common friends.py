@@ -114,5 +114,5 @@ def run_simulation_study(net, ks=(1, 2, 3, 4, 5, 6), n_trials=300):
 
 
 if __name__ == '__main__':
-    run_simulation_study(NOLA)
-    run_simulation_study(citations)
+    for net in NETWORKS:
+        run_simulation_study(net)

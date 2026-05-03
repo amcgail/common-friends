@@ -1,19 +1,26 @@
+=== Citing papers (sources; out-degree = distinct references listed) ===
+Count: 66408
+Directed citation edges: 3531918
+Out-degree mean: 53.2
+Out-degree median: 49.0
+Out-degree variance: 1092.8
+Out-degree max: 993
 
-Number of nodes: 1770474
-Number of edges: 1765959.0
-Average degree: 2.0
-Average degree of friends: 27.3
-Median degree: 1.0
-Variance in degree: 50.6
-Max degree: 2056
-Min degree: 1
-Number of nodes with min degree: 1359610
-    
-Average degree of those with degree >=2: 5.3
-Average degree of those with degree >=3: 8.2
-Average degree of those with degree >=4: 10.8
-Average degree of those with degree >=5: 13.3
-Average degree of those with degree >=6: 15.8
-Average degree of those with degree >=7: 18.2
-Average degree of those with degree >=8: 20.6
-Average degree of those with degree >=9: 22.9
+=== Cited works (targets; in-degree = times listed as a reference) ===
+Count: 1770474
+In-degree mean: 2.0
+In-degree median: 1.0
+In-degree variance: 50.6
+In-degree max: 2056
+In-degree min: 1
+Cited works at min in-degree: 1359610
+Weighted paradox analogue (in-degree): 27.3
+
+Average In-degree of those with In-degree >= 2: 5.3
+Average In-degree of those with In-degree >= 3: 8.2
+Average In-degree of those with In-degree >= 4: 10.8
+Average In-degree of those with In-degree >= 5: 13.3
+Average In-degree of those with In-degree >= 6: 15.8
+Average In-degree of those with In-degree >= 7: 18.2
+Average In-degree of those with In-degree >= 8: 20.6
+Average In-degree of those with In-degree >= 9: 22.9

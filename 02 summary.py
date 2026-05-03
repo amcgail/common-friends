@@ -11,7 +11,9 @@ def approx_s2_bar(N, M, V):
   return 0.5 + np.sqrt(0.25 + 2 * (N - 1) / denom)
 
 
-def summ(net):
+def summ(net, tail_rows_out=None):
+  if net is None:
+    return
   name = net.name
   nbds = net.nbds
   nodes = net.nodes
@@ -147,6 +149,36 @@ def summ(net):
         outf.write(f"{k:3d}  {mk_s:>{w}}  {r_prev:>{w}}  {f_pct:>{w_f}}  {rdmax:>{w}}\n")
       outf.write("\n")
 
+    if len(ds) > 0:
+      tail = P_k_tail_by_quantiles(ds, quantiles=(0.90, 0.95, 0.99), k_max=6)
+      if tail_rows_out is not None:
+        tail_rows_out.append((name, tail))
+      outf.write(
+        "Weighted tail exceedance P_k(d > d*), same F_{d,k} weights as M_k:\n"
+        "  P_k(d > d*) = sum_{d_i > d*} F_{i,k} / sum_i F_{i,k}.\n"
+        "Thresholds d* = quantile(ds, q) for q in {0.90, 0.95, 0.99} on the same multiset ds.\n\n"
+      )
+      for pct in (90, 95, 99):
+        if pct not in tail:
+          continue
+        outf.write(f"d_p{pct} = {tail[pct]['d_star']:.6g}\n")
+      outf.write("\n")
+      w_p = 10
+      outf.write(
+        f"{'k':>3}  {'P_k>d90':>{w_p}}  {'P_k>d95':>{w_p}}  {'P_k>d99':>{w_p}}\n"
+        f"{'---':>3}  {'---':>{w_p}}  {'---':>{w_p}}  {'---':>{w_p}}\n"
+      )
+      for k in range(7):
+        cells = []
+        for pct in (90, 95, 99):
+          if pct not in tail or k >= len(tail[pct]["p"]):
+            cells.append("—")
+          else:
+            p = tail[pct]["p"][k]
+            cells.append("—" if np.isnan(p) else f"{p:.{4}f}")
+        outf.write(f"{k:3d}  {cells[0]:>{w_p}}  {cells[1]:>{w_p}}  {cells[2]:>{w_p}}\n")
+      outf.write("\n")
+
     label = "In-degree" if directed else "degree"
     for i in range(2, 10):
       sub = ds[ds >= i]
@@ -154,6 +186,46 @@ def summ(net):
         continue
       outf.write(f"Average {label} of those with {label} >= {i}: {sub.mean():0.1f}\n")
 
+def write_P_k_tail_cross_network(tail_rows):
+  """Appendix-style table: networks × k for d_p90 (plus d95/d99 blocks)."""
+  if not tail_rows:
+    return
+  lines = []
+  lines.append(
+    "P_k(d > d*) with falling-factorial weights F_{d,k} (same as M_k); "
+    "d* = quantile(ds, q) on the degree multiset ds used throughout the summaries.\n"
+  )
+  for q_label, pct in (("p90", 90), ("p95", 95), ("p99", 99)):
+    lines.append(f"=== q = 0.{pct} (d_{q_label}) — P_k for k = 0..3 ===\n")
+    name_w = max(len(nm) for nm, _ in tail_rows)
+    col_w = 10
+    hdr = f"{'network':<{name_w}}  {'k=0':>{col_w}}  {'k=1':>{col_w}}  {'k=2':>{col_w}}  {'k=3':>{col_w}}\n"
+    lines.append(hdr)
+    lines.append(f"{'-' * name_w}  {'-' * col_w}  {'-' * col_w}  {'-' * col_w}  {'-' * col_w}\n")
+    for name, tail in tail_rows:
+      if pct not in tail:
+        lines.append(f"{name:<{name_w}}  {'—':>{col_w}}  {'—':>{col_w}}  {'—':>{col_w}}  {'—':>{col_w}}\n")
+        continue
+      ps = tail[pct]["p"]
+      row = [name.ljust(name_w)]
+      for k in (0, 1, 2, 3):
+        if k >= len(ps):
+          row.append(f"{'—':>{col_w}}")
+        else:
+          p = ps[k]
+          cell = "—" if np.isnan(p) else f"{p:.4f}"
+          row.append(f"{cell:>{col_w}}")
+      lines.append("  ".join(row) + "\n")
+    lines.append("\n")
+  Path("tables").mkdir(exist_ok=True)
+  with open("tables/P_k_tail_exceedance.txt", "w") as agg:
+    agg.writelines(lines)
+
+
 # MAIN EXECUTION!
+_tail_aggregate = []
 for net in NETWORKS:
-    summ(net)
+  if net is None:
+    continue
+  summ(net, tail_rows_out=_tail_aggregate)
+write_P_k_tail_cross_network(_tail_aggregate)

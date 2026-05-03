@@ -49,6 +49,24 @@ Headline — F(M_2) = 100.00% of the population has degree ≤ M_2.
  23   2055.90      1.00      100.00      1.00
  24   2055.93      1.00      100.00      1.00
 
+Weighted tail exceedance P_k(d > d*), same F_{d,k} weights as M_k:
+  P_k(d > d*) = sum_{d_i > d*} F_{i,k} / sum_i F_{i,k}.
+Thresholds d* = quantile(ds, q) for q in {0.90, 0.95, 0.99} on the same multiset ds.
+
+d_p90 = 3
+d_p95 = 5
+d_p99 = 16
+
+  k     P_k>d90     P_k>d95     P_k>d99
+---         ---         ---         ---
+  0      0.0819      0.0460      0.0100
+  1      0.4434      0.3646      0.2049
+  2      0.9911      0.9808      0.9278
+  3      1.0000      0.9999      0.9989
+  4      1.0000      1.0000      1.0000
+  5      1.0000      1.0000      1.0000
+  6      1.0000      1.0000      1.0000
+
 Average In-degree of those with In-degree >= 2: 5.3
 Average In-degree of those with In-degree >= 3: 8.2
 Average In-degree of those with In-degree >= 4: 10.8

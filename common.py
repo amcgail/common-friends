@@ -105,6 +105,51 @@ def compute_Mk_and_Vk(degrees, max_k=25):
   return M, V
 
 
+def falling_factorial_weight_vector(degrees, k):
+  """Per-entry F_{d_i,k} on a degree array (same weights as M_k); k=0 gives ones."""
+  d = np.asarray(degrees, dtype=np.float64)
+  if k == 0:
+    return np.ones_like(d, dtype=np.float64)
+  out = np.ones_like(d, dtype=np.float64)
+  for j in range(k):
+    out *= (d - j)
+  return np.maximum(out, 0.0)
+
+
+def P_k_weighted_tail_fraction(degrees, k, d_star):
+  """
+  P_k(d > d*) = sum_i F_{i,k} 1[d_i > d*] / sum_i F_{i,k}
+  (weighted average of the exceedance indicator; same F as M_k).
+  """
+  d = np.asarray(degrees, dtype=np.float64)
+  if len(d) == 0:
+    return np.nan
+  w = falling_factorial_weight_vector(d, k)
+  s = float(w.sum())
+  if s <= 0:
+    return np.nan
+  return float(w[d > d_star].sum() / s)
+
+
+def P_k_tail_by_quantiles(degrees, quantiles=(0.90, 0.95, 0.99), k_max=6):
+  """
+  For each empirical quantile q, d* = quantile(degrees, q); return d* and
+  P_k(d > d*) for k = 0..k_max. Keys are percent labels (90, 95, 99).
+  """
+  d = np.asarray(degrees, dtype=np.float64)
+  out = {}
+  if len(d) == 0:
+    return out
+  for q in quantiles:
+    pct = int(round(100 * q))
+    d_star = float(np.quantile(d, q))
+    out[pct] = {
+      "d_star": d_star,
+      "p": [P_k_weighted_tail_fraction(d, k, d_star) for k in range(k_max + 1)],
+    }
+  return out
+
+
 def format_mk_lines(M, indent="", precision=2):
   lines = []
   for k in sorted(M.keys()):

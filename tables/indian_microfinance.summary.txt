@@ -42,6 +42,24 @@ Headline — F(M_2) = 90.86% of the population has degree ≤ M_2.
  23     55.00      1.00       99.94      1.00
  24     55.00      1.00       99.94      1.00
 
+Weighted tail exceedance P_k(d > d*), same F_{d,k} weights as M_k:
+  P_k(d > d*) = sum_{d_i > d*} F_{i,k} / sum_i F_{i,k}.
+Thresholds d* = quantile(ds, q) for q in {0.90, 0.95, 0.99} on the same multiset ds.
+
+d_p90 = 17
+d_p95 = 20
+d_p99 = 28
+
+  k     P_k>d90     P_k>d95     P_k>d99
+---         ---         ---         ---
+  0      0.0914      0.0462      0.0085
+  1      0.2320      0.1349      0.0325
+  2      0.4358      0.2897      0.0926
+  3      0.6415      0.4835      0.2048
+  4      0.8076      0.6791      0.3757
+  5      0.9171      0.8383      0.5830
+  6      0.9722      0.9360      0.7697
+
 Average degree of those with degree >= 2: 8.8
 Average degree of those with degree >= 3: 9.0
 Average degree of those with degree >= 4: 9.8

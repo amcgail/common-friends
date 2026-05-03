@@ -1,5 +1,16 @@
 from common import *
 
+
+def approx_s2_bar(N, M, V):
+  """Appendix E: mean sample size to observe a common friend to 2, ~ 1/2 + sqrt(1/4 + 2(N-1)/(M^2+V-M))."""
+  if N is None or N < 2 or np.isnan(M) or M <= 0:
+    return np.nan
+  denom = M * M + V - M
+  if denom <= 0 or np.isnan(denom):
+    return np.nan
+  return 0.5 + np.sqrt(0.25 + 2 * (N - 1) / denom)
+
+
 def summ(net):
   name = net.name
   nbds = net.nbds
@@ -79,19 +90,40 @@ def summ(net):
       )
 
     M, _ = compute_Mk_and_Vk(ds)
+    # N for Appendix E: actors whose degrees drive M_k (cited works if directed, else nodes).
+    N_pop = len(ds) if directed else len(nbds)
+    s2_bar = approx_s2_bar(N_pop, float(avg_deg), float(var_deg))
     outf.write(
-      "Mean degree of common friends to k (M_k); M_0 = population mean degree.\n"
+      "Mean degree of common friends to k (M_k); M_0 = population mean degree; "
+      f"d_max = {max_deg:g} (maximum {('in-degree' if directed else 'degree')}).\n"
+      "F(M_k): empirical CDF of degrees at M_k — F(M_k) = 100 × |{d in ds : d ≤ M_k}| / |ds|, "
+      "same degree multiset ds as for M_k above.\n"
     )
+    if not np.isnan(s2_bar):
+      outf.write(
+        f"Appendix E — approx. mean sample size to see a common friend to 2: "
+        f"s̄_2 ≈ {s2_bar:.2f}  (N = {N_pop:,}, M = M_0 and V from same degree multiset).\n"
+      )
+    else:
+      outf.write(
+        "Appendix E — s̄_2: not defined (need N ≥ 2 and M^2 + V − M > 0).\n"
+      )
+    m2 = M.get(2, np.nan)
+    if not np.isnan(m2) and len(ds) > 0:
+      f_m2 = 100.0 * float((ds <= m2).mean())
+      outf.write(f"Headline — F(M_2) = {f_m2:.2f}% of the population has degree ≤ M_2.\n")
+    outf.write("\n")
+
     prec = 2
     w = max(8, prec + 5)
+    w_f = max(10, prec + 6)
     ks = [k for k in sorted(M.keys()) if not np.isnan(M[k])]
-    m0 = M.get(0, np.nan)
     if not ks:
       outf.write("(no finite M_k)\n\n")
     else:
       outf.write(
-        f"{'k':>3}  {'M_k':>{w}}  {'M_k/M_{k-1}':>{w}}  {'M_k/M_0':>{w}}\n"
-        f"{'---':>3}  {'---':>{w}}  {'---':>{w}}  {'---':>{w}}\n"
+        f"{'k':>3}  {'M_k':>{w}}  {'M_k/M_{k-1}':>{w}}  {'F(M_k)%':>{w_f}}  {'M_k/d_max':>{w}}\n"
+        f"{'---':>3}  {'---':>{w}}  {'---':>{w}}  {'---':>{w_f}}  {'---':>{w}}\n"
       )
       for k in ks:
         mk = M[k]
@@ -104,11 +136,15 @@ def summ(net):
             r_prev = "—"
           else:
             r_prev = f"{mk / m_prev:.{prec}f}"
-        if np.isnan(m0) or m0 == 0:
-          r0 = "—"
+        if len(ds) == 0:
+          f_pct = "—"
         else:
-          r0 = f"{mk / m0:.{prec}f}"
-        outf.write(f"{k:3d}  {mk_s:>{w}}  {r_prev:>{w}}  {r0:>{w}}\n")
+          f_pct = f"{100.0 * float((ds <= mk).mean()):.{prec}f}"
+        if max_deg == 0:
+          rdmax = "—"
+        else:
+          rdmax = f"{mk / max_deg:.{prec}f}"
+        outf.write(f"{k:3d}  {mk_s:>{w}}  {r_prev:>{w}}  {f_pct:>{w_f}}  {rdmax:>{w}}\n")
       outf.write("\n")
 
     label = "In-degree" if directed else "degree"

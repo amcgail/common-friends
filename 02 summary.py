@@ -1,14 +1,26 @@
 from common import *
 
+_DASH = "—"
 
-def approx_s2_bar(N, M, V):
-  """Appendix E: mean sample size to observe a common friend to 2, ~ 1/2 + sqrt(1/4 + 2(N-1)/(M^2+V-M))."""
-  if N is None or N < 2 or np.isnan(M) or M <= 0:
-    return np.nan
-  denom = M * M + V - M
-  if denom <= 0 or np.isnan(denom):
-    return np.nan
-  return 0.5 + np.sqrt(0.25 + 2 * (N - 1) / denom)
+
+def _fmt(x, prec=2):
+  """Number → string with NaN/None → '—'."""
+  if x is None or (isinstance(x, float) and np.isnan(x)):
+    return _DASH
+  return f"{x:.{prec}f}"
+
+
+def _ratio(a, b, prec=2):
+  """a/b → string; '—' if either is NaN/None or b == 0."""
+  if a is None or b is None:
+    return _DASH
+  if isinstance(a, float) and np.isnan(a):
+    return _DASH
+  if isinstance(b, float) and np.isnan(b):
+    return _DASH
+  if b == 0:
+    return _DASH
+  return f"{a / b:.{prec}f}"
 
 
 def summ(net, tail_rows_out=None):
@@ -94,7 +106,7 @@ def summ(net, tail_rows_out=None):
     M, _ = compute_Mk_and_Vk(ds)
     # N for Appendix E: actors whose degrees drive M_k (cited works if directed, else nodes).
     N_pop = len(ds) if directed else len(nbds)
-    s2_bar = approx_s2_bar(N_pop, float(avg_deg), float(var_deg))
+    s2_bar = s_bar_k(2, N_pop, M)
     outf.write(
       "Mean degree of common friends to k (M_k); M_0 = population mean degree; "
       f"d_max = {max_deg:g} (maximum {('in-degree' if directed else 'degree')}).\n"
@@ -117,66 +129,45 @@ def summ(net, tail_rows_out=None):
     outf.write("\n")
 
     prec = 2
-    w = max(8, prec + 5)
-    w_f = max(10, prec + 6)
+    w, w_f = 8, 10
     ks = [k for k in sorted(M.keys()) if not np.isnan(M[k])]
     if not ks:
       outf.write("(no finite M_k)\n\n")
     else:
-      outf.write(
-        f"{'k':>3}  {'M_k':>{w}}  {'M_k/M_{k-1}':>{w}}  {'F(M_k)%':>{w_f}}  {'M_k/d_max':>{w}}\n"
-        f"{'---':>3}  {'---':>{w}}  {'---':>{w}}  {'---':>{w_f}}  {'---':>{w}}\n"
-      )
+      header = f"{'k':>3}  {'M_k':>{w}}  {'M_k/M_{k-1}':>{w}}  {'F(M_k)%':>{w_f}}  {'M_k/d_max':>{w}}\n"
+      outf.write(header)
+      outf.write(f"{'---':>3}  {'---':>{w}}  {'---':>{w}}  {'---':>{w_f}}  {'---':>{w}}\n")
       for k in ks:
         mk = M[k]
-        mk_s = f"{mk:.{prec}f}"
-        if k == 0:
-          r_prev = "—"
-        else:
-          m_prev = M.get(k - 1, np.nan)
-          if np.isnan(m_prev) or m_prev == 0:
-            r_prev = "—"
-          else:
-            r_prev = f"{mk / m_prev:.{prec}f}"
-        if len(ds) == 0:
-          f_pct = "—"
-        else:
-          f_pct = f"{100.0 * float((ds <= mk).mean()):.{prec}f}"
-        if max_deg == 0:
-          rdmax = "—"
-        else:
-          rdmax = f"{mk / max_deg:.{prec}f}"
-        outf.write(f"{k:3d}  {mk_s:>{w}}  {r_prev:>{w}}  {f_pct:>{w_f}}  {rdmax:>{w}}\n")
+        f_pct = 100.0 * float((ds <= mk).mean()) if len(ds) > 0 else None
+        outf.write(
+          f"{k:3d}  {_fmt(mk, prec):>{w}}  {_ratio(mk, M.get(k - 1) if k > 0 else None, prec):>{w}}  "
+          f"{_fmt(f_pct, prec):>{w_f}}  {_ratio(mk, max_deg, prec):>{w}}\n"
+        )
       outf.write("\n")
 
     if len(ds) > 0:
       tail = P_k_tail_by_quantiles(ds, quantiles=(0.90, 0.95, 0.99), k_max=6)
       if tail_rows_out is not None:
         tail_rows_out.append((name, tail))
+      pcts = sorted(tail.keys())
       outf.write(
         "Weighted tail exceedance P_k(d > d*), same F_{d,k} weights as M_k:\n"
         "  P_k(d > d*) = sum_{d_i > d*} F_{i,k} / sum_i F_{i,k}.\n"
         "Thresholds d* = quantile(ds, q) for q in {0.90, 0.95, 0.99} on the same multiset ds.\n\n"
       )
-      for pct in (90, 95, 99):
-        if pct not in tail:
-          continue
+      for pct in pcts:
         outf.write(f"d_p{pct} = {tail[pct]['d_star']:.6g}\n")
       outf.write("\n")
       w_p = 10
       outf.write(
-        f"{'k':>3}  {'P_k>d90':>{w_p}}  {'P_k>d95':>{w_p}}  {'P_k>d99':>{w_p}}\n"
-        f"{'---':>3}  {'---':>{w_p}}  {'---':>{w_p}}  {'---':>{w_p}}\n"
+        f"{'k':>3}  " + "  ".join(f"{f'P_k>d{pct}':>{w_p}}" for pct in pcts) + "\n"
+        f"{'---':>3}  " + "  ".join(f"{'---':>{w_p}}" for _ in pcts) + "\n"
       )
       for k in range(7):
-        cells = []
-        for pct in (90, 95, 99):
-          if pct not in tail or k >= len(tail[pct]["p"]):
-            cells.append("—")
-          else:
-            p = tail[pct]["p"][k]
-            cells.append("—" if np.isnan(p) else f"{p:.{4}f}")
-        outf.write(f"{k:3d}  {cells[0]:>{w_p}}  {cells[1]:>{w_p}}  {cells[2]:>{w_p}}\n")
+        row_cells = [_fmt(tail[pct]["p"][k] if k < len(tail[pct]["p"]) else None, 4)
+                     for pct in pcts]
+        outf.write(f"{k:3d}  " + "  ".join(f"{c:>{w_p}}" for c in row_cells) + "\n")
       outf.write("\n")
 
     label = "In-degree" if directed else "degree"
@@ -186,36 +177,24 @@ def summ(net, tail_rows_out=None):
         continue
       outf.write(f"Average {label} of those with {label} >= {i}: {sub.mean():0.1f}\n")
 
-def write_P_k_tail_cross_network(tail_rows):
-  """Appendix-style table: networks × k for d_p90 (plus d95/d99 blocks)."""
+def write_P_k_tail_cross_network(tail_rows, ks=(0, 1, 2, 3), pcts=(90, 95, 99)):
+  """Appendix-style table: networks × k, one block per quantile."""
   if not tail_rows:
     return
-  lines = []
-  lines.append(
+  name_w = max(len(nm) for nm, _ in tail_rows)
+  col_w = 10
+  lines = [
     "P_k(d > d*) with falling-factorial weights F_{d,k} (same as M_k); "
     "d* = quantile(ds, q) on the degree multiset ds used throughout the summaries.\n"
-  )
-  for q_label, pct in (("p90", 90), ("p95", 95), ("p99", 99)):
-    lines.append(f"=== q = 0.{pct} (d_{q_label}) — P_k for k = 0..3 ===\n")
-    name_w = max(len(nm) for nm, _ in tail_rows)
-    col_w = 10
-    hdr = f"{'network':<{name_w}}  {'k=0':>{col_w}}  {'k=1':>{col_w}}  {'k=2':>{col_w}}  {'k=3':>{col_w}}\n"
-    lines.append(hdr)
-    lines.append(f"{'-' * name_w}  {'-' * col_w}  {'-' * col_w}  {'-' * col_w}  {'-' * col_w}\n")
+  ]
+  for pct in pcts:
+    lines.append(f"=== q = 0.{pct} (d_p{pct}) — P_k for k = {ks[0]}..{ks[-1]} ===\n")
+    lines.append(f"{'network':<{name_w}}  " + "  ".join(f"{f'k={k}':>{col_w}}" for k in ks) + "\n")
+    lines.append(f"{'-' * name_w}  " + "  ".join(f"{'-' * col_w}" for _ in ks) + "\n")
     for name, tail in tail_rows:
-      if pct not in tail:
-        lines.append(f"{name:<{name_w}}  {'—':>{col_w}}  {'—':>{col_w}}  {'—':>{col_w}}  {'—':>{col_w}}\n")
-        continue
-      ps = tail[pct]["p"]
-      row = [name.ljust(name_w)]
-      for k in (0, 1, 2, 3):
-        if k >= len(ps):
-          row.append(f"{'—':>{col_w}}")
-        else:
-          p = ps[k]
-          cell = "—" if np.isnan(p) else f"{p:.4f}"
-          row.append(f"{cell:>{col_w}}")
-      lines.append("  ".join(row) + "\n")
+      ps = tail.get(pct, {}).get("p", [])
+      cells = [_fmt(ps[k] if k < len(ps) else None, 4) for k in ks]
+      lines.append(f"{name:<{name_w}}  " + "  ".join(f"{c:>{col_w}}" for c in cells) + "\n")
     lines.append("\n")
   Path("tables").mkdir(exist_ok=True)
   with open("tables/P_k_tail_exceedance.txt", "w") as agg:

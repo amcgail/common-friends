@@ -60,93 +60,99 @@ NETWORKS = [
   celegans_chemical
 ]
 
-# --- M_k / V_k from degree multiset (Appendix B, Equations 7–8) ---
-
-_falling_factorial_cache = {}
+# --- M_k / V_k and tail probabilities from a degree multiset (Appendix B). ---
 
 
-def falling_factorial(d, k):
-  """F_{d,k} = d(d-1)...(d-k+1); zero if d < k (handled by product)."""
-  if (d, k) in _falling_factorial_cache:
-    return _falling_factorial_cache[d, k]
-  result = 1
-  for i in range(k):
-    result *= (d - i)
-  _falling_factorial_cache[d, k] = result
-  return result
+def _F_weights(degrees, k_max):
+  """
+  Yield (k, w) for k = 0..k_max where w[i] = F_{d_i,k} = d_i (d_i-1) ... (d_i-k+1).
+  k = 0 → w = ones; subsequent k builds on the previous w (one O(N) multiply per k).
+  Same falling-factorial weights used to define M_k.
+  """
+  d = np.asarray(degrees, dtype=np.float64)
+  w = np.ones_like(d)
+  yield 0, w
+  for k in range(1, k_max + 1):
+    w = w * (d - (k - 1))
+    np.maximum(w, 0.0, out=w)
+    yield k, w
 
 
-def falling_factorial_array(max_degree, k):
-  """F_{d,k} for d = k..max_degree; index d - k into the returned array."""
-  F_k_k = falling_factorial(k, k)
-  weights = [F_k_k]
-  for d in range(k + 1, max_degree + 1):
-    weights.append(weights[-1] * d / (d - k))
-  return np.array(weights)
-
-
-def compute_Mk_and_Vk(degrees, max_k=25):
-  """Weighted mean/variance of degree for common-friends-to-k weights F_{d,k}."""
+def compute_Mk_and_Vk(degrees, k_max=24):
+  """Weighted mean/variance of degree under F_{d,k} (Appendix B, Equations 7–8)."""
   if len(degrees) == 0:
     return {0: np.nan}, {0: np.nan}
-  M = {0: degrees.mean()}
-  V = {0: degrees.var()}
-  max_d = int(max(degrees))
-  for k in range(1, max_k):
-    weights_by_degree = falling_factorial_array(max_d, k)
-    eligible_degrees = degrees[degrees >= k]
-    if len(eligible_degrees) == 0:
-      M[k] = np.nan
-      V[k] = np.nan
+  d = np.asarray(degrees, dtype=np.float64)
+  M, V = {}, {}
+  for k, w in _F_weights(d, k_max):
+    s = float(w.sum())
+    if s <= 0:
+      M[k] = V[k] = np.nan
       continue
-    node_weights = weights_by_degree[eligible_degrees - k]
-    M[k] = (node_weights * eligible_degrees).sum() / node_weights.sum()
-    V[k] = (node_weights * (eligible_degrees - M[k]) ** 2).sum() / node_weights.sum()
+    mk = float((w * d).sum() / s)
+    M[k] = mk
+    V[k] = float((w * (d - mk) ** 2).sum() / s)
   return M, V
 
 
-def falling_factorial_weight_vector(degrees, k):
-  """Per-entry F_{d_i,k} on a degree array (same weights as M_k); k=0 gives ones."""
-  d = np.asarray(degrees, dtype=np.float64)
-  if k == 0:
-    return np.ones_like(d, dtype=np.float64)
-  out = np.ones_like(d, dtype=np.float64)
-  for j in range(k):
-    out *= (d - j)
-  return np.maximum(out, 0.0)
+def E_k_expected(s, k, N, M_dict):
+  """
+  Appendix E: expected count of size-k subsets of an s-sample with a common
+  friend in the population, via the recurrence
+      E_1 = s * M_0,    E_{k+1} = E_k * (s - k) / (N - k) * (M_k - k) / (k + 1).
+  Uses M_dict (e.g. from compute_Mk_and_Vk). Returns 0 if any factor is non-positive
+  (e.g. s < k); NaN if the needed M_k is missing.
+  """
+  if k < 1 or s <= 0 or N is None or N < k:
+    return 0.0
+  M0 = M_dict.get(0, np.nan)
+  if np.isnan(M0):
+    return np.nan
+  val = s * M0
+  for j in range(1, k):
+    Mj = M_dict.get(j, np.nan)
+    if np.isnan(Mj):
+      return np.nan
+    factor = (s - j) * (Mj - j) / ((N - j) * (j + 1))
+    if factor < 0:
+      return 0.0
+    val *= factor
+  return val
 
 
-def P_k_weighted_tail_fraction(degrees, k, d_star):
-  """
-  P_k(d > d*) = sum_i F_{i,k} 1[d_i > d*] / sum_i F_{i,k}
-  (weighted average of the exceedance indicator; same F as M_k).
-  """
-  d = np.asarray(degrees, dtype=np.float64)
-  if len(d) == 0:
+def s_bar_k(k, N, M_dict, target=1.0):
+  """Smallest real s with E_k(s) >= target (Appendix E inversion). NaN if unattainable."""
+  if k < 1 or N is None or N < 1 or not M_dict:
     return np.nan
-  w = falling_factorial_weight_vector(d, k)
-  s = float(w.sum())
-  if s <= 0:
+  if E_k_expected(float(N), k, N, M_dict) < target:
     return np.nan
-  return float(w[d > d_star].sum() / s)
+  lo, hi = 0.0, float(N)
+  for _ in range(200):
+    mid = 0.5 * (lo + hi)
+    if E_k_expected(mid, k, N, M_dict) < target:
+      lo = mid
+    else:
+      hi = mid
+    if hi - lo < 1e-12 * max(1.0, hi):
+      break
+  return 0.5 * (lo + hi)
 
 
 def P_k_tail_by_quantiles(degrees, quantiles=(0.90, 0.95, 0.99), k_max=6):
   """
-  For each empirical quantile q, d* = quantile(degrees, q); return d* and
-  P_k(d > d*) for k = 0..k_max. Keys are percent labels (90, 95, 99).
+  P_k(d > d*) = (sum_i F_{i,k} 1[d_i > d*]) / sum_i F_{i,k},
+  with d* = quantile(degrees, q) on the same multiset. Returns
+  {pct: {"d_star": d_star, "p": [P_0, ..., P_{k_max}]}}.
   """
   d = np.asarray(degrees, dtype=np.float64)
-  out = {}
   if len(d) == 0:
-    return out
-  for q in quantiles:
-    pct = int(round(100 * q))
-    d_star = float(np.quantile(d, q))
-    out[pct] = {
-      "d_star": d_star,
-      "p": [P_k_weighted_tail_fraction(d, k, d_star) for k in range(k_max + 1)],
-    }
+    return {}
+  thresholds = {int(round(100 * q)): float(np.quantile(d, q)) for q in quantiles}
+  out = {pct: {"d_star": dstar, "p": []} for pct, dstar in thresholds.items()}
+  for _, w in _F_weights(d, k_max):
+    s = float(w.sum())
+    for pct, dstar in thresholds.items():
+      out[pct]["p"].append(np.nan if s <= 0 else float(w[d > dstar].sum() / s))
   return out
 
 

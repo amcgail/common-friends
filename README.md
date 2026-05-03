@@ -16,17 +16,16 @@ This repository reproduces the empirical illustrations and summary statistics re
 | File / folder | Purpose |
 |---------------|--------|
 | `common.py` | Shared `Network` class, degree/neighborhood handling, and computation of \(M_k\) from the degree distribution (Equation 1). |
-| `01 create citation network.py` | *Optional.* Builds `networks/citations.txt` from Web of Science export files (see below). |
 | `02 summary.py` | Network summary statistics and degree-distribution figures; computes \(M_0, M_1, \ldots, M_5\) from the degree distribution. |
 | `03 count common friends.py` | Simulations: sample until common friend to \(k\) for \(k = 2,\ldots,6\); 300 runs; writes tables with sample size and degree (or indegree) statistics. |
-| `networks/` | Edge-list inputs: `neworleans.txt`, `citations.txt`, `indian_microfinance.txt`. |
+| `networks/` | `*.txt` edge lists; same-folder `*.py` files generate the matching `.txt` where applicable. |
 | `tables/` | Summary and simulation output (e.g. `*.summary.txt`, `*.sim.txt`). |
 | `figures/` | Degree-distribution and related plots. |
 
 ## Requirements
 
 - Python 3.7+
-- Dependencies: `numpy`, `matplotlib`, `tqdm`; optional `python-dotenv` for `01 create citation network.py`.
+- Dependencies: `numpy`, `matplotlib`, `tqdm`; optional `python-dotenv` for `networks/citations.py` (WoS).
 
 Install with:
 
@@ -36,24 +35,15 @@ pip install -r requirements.txt
 
 ## How to run (replication)
 
-1. **Networks**: Ensure `networks/neworleans.txt`, `networks/citations.txt`, and (for the microfinance illustration) `networks/indian_microfinance.txt` exist (see *Data* below).  
-   If you already have these files, skip step 2.
+1. **Networks**: Ensure the `*.txt` edge lists you need exist under `networks/` (see *Data* below); missing files are skipped in `common.py`.
 
-2. **Citation network (optional)**  
-   Only needed if you are building the citation network from Web of Science exports.  
-   Set environment variable `BASE_DIR` to the folder containing the exported `.txt` files, then run:
-   ```bash
-   python "01 create citation network.py"
-   ```
-   This writes `networks/citations.txt`. If you are only replicating from existing edge lists, use the provided `citations.txt` and do not run this script.
-
-3. **Summary statistics and \(M_k\)**  
+2. **Summary statistics and \(M_k\)**  
    ```bash
    python "02 summary.py"
    ```  
    Writes `tables/<network>.summary.txt` and `figures/<network>.degree.png` for each network. The summary includes \(M_0\) (mean degree), \(M_1 = M_0 + V_0/M_0\) (mean degree of friends), and \(M_2, \ldots, M_5\) from the recurrence in Equation 1.
 
-4. **Common-friend simulations**  
+3. **Common-friend simulations**  
    ```bash
    python "03 count common friends.py"
    ```  
@@ -61,6 +51,17 @@ pip install -r requirements.txt
 
 ## Data
 
-- **New Orleans Facebook**: From Viswanath et al. (2009). The edge list `networks/neworleans.txt` should contain one edge per line: `node_id_i node_id_j` (integer IDs). The code symmetrizes this network so that “friends” are undirected.
-- **Citations**: From Web of Science (sociology journals, 2010–2019). The edge list `networks/citations.txt` should be one citation per line: `citing_paper_id cited_work_id`. The code treats this as directed (outdegree = citations made, indegree = citations received); the paper’s “common friends” in this setting are *sources cited in common*, i.e. high-*indegree* nodes.
-- **Indian microfinance**: Banerjee et al., 2013, “The Diffusion of Microfinance”, Harvard Dataverse V9, [doi:10.7910/DVN/U3BIHX](https://doi.org/10.7910/DVN/U3BIHX). `networks/indian_microfinance.txt` is the undirected **all village relationships** layer for **village 60** (`adj_allVillageRelationships_vilno_60.csv` in the archive’s Adjacency Matrices folder—the largest village by node count, 1775 nodes); one edge per line as `i j` (matrix row/column indices). Symmetrized like New Orleans.
+Edge lists are **one line per edge**, **space-separated** integer node IDs. Extra columns (if any) are ignored by the loader.
+
+| File | Directed? | In `common.py` | Source |
+|------|-----------|----------------|--------|
+| `neworleans.txt` | No (symmetrized) | Yes | Facebook New Orleans network, Viswanath et al. (2009). |
+| `citations.txt` | Yes | Yes | Web of Science, sociology journals 2010–2019; `citing_id cited_id`. |
+| `indian_microfinance.txt` | No (symmetrized) | Yes | Banerjee et al. (2013), [doi:10.7910/DVN/U3BIHX](https://doi.org/10.7910/DVN/U3BIHX); village 60, all-village undirected layer. |
+| `power.txt` | No (symmetrized) | Yes | Western US power grid, Watts & Strogatz (1998); from SuiteSparse “Newman/power” Matrix Market (`power.mtx`). Nodes **0 … 4940** (MTX 1-based converted). |
+| `highschool.txt` | No (symmetrized) | Yes | SocioPatterns Marseille high school 2013 proximity (`HighSchool2013_proximity_net.csv`). Each raw row is one proximity record for a pair (the same pair can appear many times). **Per-pair interaction count** = number of such rows. An undirected edge is kept iff that count is **strictly greater than the median** of those counts over all pairs with at least one row. [Dataset page](https://sociopatterns.org/datasets/high-school-contact-and-friendship-networks/). |
+| `celegans_chemical.txt` | Yes | Yes | *C. elegans* hermaphrodite **chemical** connectome, Cook et al. (2019), corrected matrices via [Netzschleuder `celegans_2019`](https://networks.skewed.de/net/celegans_2019) / [WormWiring](https://wormwiring.org/pages/adjacency.html); edges from `hermaphrodite_chemical_corrected.csv/edges.csv` (pre→post). |
+
+- **New Orleans Facebook**: `neworleans.txt` may use tabs; `node_id_i node_id_j` (1-based in the original release). Symmetrized so neighborhoods are undirected.
+- **Citations**: `citing_paper_id cited_work_id`. Directed: indegree = times cited; simulations use indegree for the “common friend” target.
+- **Indian microfinance**: One undirected edge per line `i j` (0-based indices). Symmetrized like New Orleans.

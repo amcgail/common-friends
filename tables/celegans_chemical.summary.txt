@@ -1,0 +1,26 @@
+=== Citing papers (sources; out-degree = distinct references listed) ===
+Count: 444
+Directed citation edges: 4879
+Out-degree mean: 11.0
+Out-degree median: 10.0
+Out-degree variance: 73.6
+Out-degree max: 65
+
+=== Cited works (targets; in-degree = times listed as a reference) ===
+Count: 300
+In-degree mean: 16.3
+In-degree median: 15.0
+In-degree variance: 66.3
+In-degree max: 49
+In-degree min: 2
+Cited works at min in-degree: 1
+Weighted paradox analogue (in-degree): 20.3
+
+Average In-degree of those with In-degree >= 2: 16.3
+Average In-degree of those with In-degree >= 3: 16.3
+Average In-degree of those with In-degree >= 4: 16.4
+Average In-degree of those with In-degree >= 5: 16.6
+Average In-degree of those with In-degree >= 6: 16.9
+Average In-degree of those with In-degree >= 7: 17.2
+Average In-degree of those with In-degree >= 8: 17.6
+Average In-degree of those with In-degree >= 9: 18.2

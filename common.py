@@ -47,5 +47,15 @@ def _network_or_none(path, symmetrize=False):
 NOLA = _network_or_none('networks/neworleans.txt', symmetrize=True)
 citations = _network_or_none('networks/citations.txt', symmetrize=False)
 indian_microfinance = _network_or_none('networks/indian_microfinance.txt', symmetrize=True)
+power = _network_or_none('networks/power.txt', symmetrize=True)
+highschool = _network_or_none('networks/highschool.txt', symmetrize=True)
+celegans_chemical = _network_or_none('networks/celegans_chemical.txt', symmetrize=False)
 
-NETWORKS = [n for n in (NOLA, citations, indian_microfinance) if n is not None]
+NETWORKS = [
+  NOLA,
+  citations,
+  indian_microfinance,
+  power,
+  highschool,
+  celegans_chemical
+]

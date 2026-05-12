@@ -43,7 +43,8 @@ def summ(net, tail_rows_out=None):
   csum = np.cumsum(sdeg)
   csum = csum / csum[-1]
 
-  plt.figure()
+  # PNAS single-column width (3.42 in) keeps text legible at print size.
+  fig = plt.figure(figsize=(PNAS_WIDTHS_IN["1col"], 2.6))
   plt.plot(csum)
   pct = np.arange(0, 1.1, 0.1)
   plt.yticks(pct, ["%d%%" % (p * 100) for p in pct])
@@ -52,7 +53,8 @@ def summ(net, tail_rows_out=None):
     plt.xlabel("Cited works (ordered by in-degree)")
   else:
     plt.xlabel("Nodes (ordered by degree)")
-  plt.savefig(f"figures/{name}.degree.png")
+  save_figure(f"{name}.degree", fig=fig)
+  plt.close(fig)
 
 
   avg_deg = ds.mean()
@@ -104,9 +106,12 @@ def summ(net, tail_rows_out=None):
       )
 
     M, _ = compute_Mk_and_Vk(ds)
-    # N for Appendix E: actors whose degrees drive M_k (cited works if directed, else nodes).
-    N_pop = len(ds) if directed else len(nbds)
-    s2_bar = s_bar_k(2, N_pop, M)
+    # Appendix E: sample s actors from the sampling frame (size N_pop) and
+    # look for common-friends-to-k in the in-neighborhood pool.
+    # Undirected: frame == node set, M_base == mean degree.
+    # Directed (citations): frame == citing papers, M_base == mean out-degree.
+    N_pop, M_base = network_population_and_M_base(net)
+    s2_bar = s_bar_k(2, N_pop, M, M_base=M_base)
     outf.write(
       "Mean degree of common friends to k (M_k); M_0 = population mean degree; "
       f"d_max = {max_deg:g} (maximum {('in-degree' if directed else 'degree')}).\n"
@@ -114,10 +119,17 @@ def summ(net, tail_rows_out=None):
       "same degree multiset ds as for M_k above.\n"
     )
     if not np.isnan(s2_bar):
-      outf.write(
-        f"Appendix E — approx. mean sample size to see a common friend to 2: "
-        f"s̄_2 ≈ {s2_bar:.2f}  (N = {N_pop:,}, M = M_0 and V from same degree multiset).\n"
-      )
+      if directed:
+        outf.write(
+          f"Appendix E — approx. mean sample size to see a common friend to 2: "
+          f"s̄_2 ≈ {s2_bar:.2f}  (sampling frame = {N_pop:,} citing actors; "
+          f"M_out = {M_base:.2f}, M_k for k ≥ 1 from the in-degree multiset).\n"
+        )
+      else:
+        outf.write(
+          f"Appendix E — approx. mean sample size to see a common friend to 2: "
+          f"s̄_2 ≈ {s2_bar:.2f}  (N = {N_pop:,}, M = M_0 and V from same degree multiset).\n"
+        )
     else:
       outf.write(
         "Appendix E — s̄_2: not defined (need N ≥ 2 and M^2 + V − M > 0).\n"

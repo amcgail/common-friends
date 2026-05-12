@@ -18,7 +18,7 @@ Weighted paradox analogue (in-degree): 20.3
 
 Mean degree of common friends to k (M_k); M_0 = population mean degree; d_max = 49 (maximum in-degree).
 F(M_k): empirical CDF of degrees at M_k — F(M_k) = 100 × |{d in ds : d ≤ M_k}| / |ds|, same degree multiset ds as for M_k above.
-Appendix E — approx. mean sample size to see a common friend to 2: s̄_2 ≈ 1.97  (N = 300, M = M_0 and V from same degree multiset).
+Appendix E — approx. mean sample size to see a common friend to 2: s̄_2 ≈ 2.60  (sampling frame = 444 citing actors; M_out = 10.99, M_k for k ≥ 1 from the in-degree multiset).
 Headline — F(M_2) = 83.67% of the population has degree ≤ M_2.
 
   k       M_k  M_k/M_{k-1}     F(M_k)%  M_k/d_max

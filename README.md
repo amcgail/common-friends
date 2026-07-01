@@ -5,7 +5,7 @@ This repository reproduces the empirical illustrations and summary statistics re
 
 ## What the paper shows
 
-- **Friendship paradox**: On average, your friends have more friends than you do; mean degree of friends is M_f = M + V/M (population mean M, variance V).
+- **Friendship paradox**: On average, your friends have more friends than you do; mean degree of friends is M_1 = M + V/M (population mean M, variance V).
 - **Power of common friends**: A *common friend to k* is someone who appears in the friend lists of k different people. The mean degree of common friends to k increases with k; the paper gives the recurrence M_{k+1} = M_k + V_k/(M_k - k) (Equation 1 in the main text).
 - **Empirical illustrations**:  
   - **Facebook (New Orleans)**: Sampling people until we see a common friend to 2, 3, … shows that those common friends have very high degree (e.g. common friend to 3 has mean degree > 99.9th percentile).  

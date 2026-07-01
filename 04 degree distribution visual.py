@@ -8,7 +8,7 @@ for k = 0, 1, 2, ... overlaid on the degree distribution histogram.
 
 Key concepts from the paper:
 - M_0: Mean degree in the population
-- M_1 (M_f): Mean degree of friends (the classic friendship paradox)
+- M_1: Mean degree of friends (the classic friendship paradox)
 - M_2: Mean degree of common friends to 2 people
 - M_k: Mean degree of common friends to k people
 
@@ -133,11 +133,11 @@ def plot_degree_distribution_with_Mk(
                 if k > show_Mk_up_to:
                     break
             
-            # Create label: M for k=0, M_f for k=1, M_k otherwise
+            # Create label: M for k=0, M_1 for k=1, M_k otherwise
             if k == 0:
                 label = "$M$"
             elif k == 1:
-                label = "$M_f$"
+                label = "$M_1$"
             else:
                 label = f"$M_{k}$"
             
